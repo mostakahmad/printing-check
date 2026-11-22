@@ -54,7 +54,7 @@ textarea { display:block; width:100%; padding:12px; border-radius:10px; border:1
 .mini-buttons button { font:600 12px system-ui,sans-serif; border:1px solid #d6dfeb; background:#fff; border-radius:7px; padding:4px 9px; color:#52637a; cursor:pointer; }
 .log { margin:0; min-height:130px; max-height:270px; overflow:auto; border-radius:10px; background:#0e192c; color:#cde8e5; padding:12px; white-space:pre-wrap; overflow-wrap:anywhere; font:11px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace; }
 footer { text-align:center; padding:17px 12px 28px; font-size:11px; color:#708095; }
-@media (min-width:650px) { .hero { border-radius:0 0 20px 20px; padding:34px; } main { padding:20px 0 5px; } .card { padding:23px; } .buttons { grid-template-columns:1.3fr 1fr; } #disconnect-btn { grid-column:1/-1; } }
+@media (min-width:650px) { .hero { border-radius:0 0 20px 20px; padding:34px; } main { padding:20px 0 5px; } .card { padding:23px; } .buttons { grid-template-columns:1.3fr 1fr; } #connect-spp-btn, #disconnect-btn { grid-column:1/-1; } }
 @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
 
 details { border:1px solid var(--line); border-radius:10px; padding:11px 12px; margin:8px 0; background:#fbfdff; }
@@ -62,3 +62,7 @@ summary { cursor:pointer; font-weight:700; font-size:13px; }
 details ol { padding-left:20px; margin:10px 0 0; font-size:12px; color:var(--muted); }
 details li { margin:6px 0; }
 code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; background:#edf2fa; padding:1px 4px; border-radius:4px; }
+
+/* v1.2 advanced diagnostics */
+.uuid-input { display:block; width:100%; min-width:0; margin:10px 0; box-sizing:border-box; padding:12px; font-size:14px; border:1px solid #cbd5e1; border-radius:9px; background:#fff; color:#0f172a; }
+#diagnostic-heading { overflow-wrap:anywhere; }
