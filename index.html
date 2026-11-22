@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="A local-only browser test for an RPP02N Bluetooth Classic ESC/POS receipt printer using the Web Serial API." />
+    <title>RPP02N | PC & Mobile Bluetooth Printer Lab</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div class="hero-top">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6zM18 12h.01"/></svg>
+          </div>
+          <span class="version">GitHub Pages v1.1</span>
+        </div>
+        <div class="eyebrow">BLUETOOTH RECEIPT PRINTING</div>
+        <h1>RPP02N Printer Lab</h1>
+        <p>Connect and print directly from PC or Android Chrome over Bluetooth — no Thermer app or backend required.</p>
+      </header>
+
+      <main>
+        <section class="card" aria-labelledby="check-heading">
+          <div class="section-heading">
+            <h2 id="check-heading">Browser readiness</h2>
+            <span class="tiny-label">AUTOMATIC CHECK</span>
+          </div>
+          <div class="checks">
+            <div class="check-row"><div><span class="check-icon" id="secure-symbol">·</span><span>Secure connection (HTTPS)</span></div><span id="secure-text" class="check-status">Checking…</span></div>
+            <div class="check-row"><div><span class="check-icon" id="serial-symbol">·</span><span>Web Serial API</span></div><span id="serial-text" class="check-status">Checking…</span></div>
+          </div>
+          <p class="notice" id="compatibility-note" role="status">Checking your browser…</p>
+          <p class="subtle small" id="platform-note" aria-live="polite"></p>
+        </section>
+
+        <section class="card" aria-labelledby="connect-heading">
+          <div class="section-heading">
+            <h2 id="connect-heading">1. Connect printer</h2>
+            <span id="connection-badge" class="status-pill idle"><span class="status-dot"></span> Not connected</span>
+          </div>
+          <p class="subtle">Turn on your printer, pair it from the <strong>same PC or Android phone’s Bluetooth settings</strong>, and open this page in <strong>Google Chrome</strong>. Close Thermer or any app already using the printer.</p>
+          <div class="buttons">
+            <button id="connect-btn" class="btn primary" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10-5 4V3l5 4L7 17"/></svg>
+              Choose &amp; connect printer
+            </button>
+            <button id="reconnect-btn" class="btn outline" type="button">Reconnect permitted printer</button>
+            <button id="disconnect-btn" class="btn muted" type="button" disabled>Disconnect</button>
+          </div>
+          <div class="device-info" id="device-info" hidden></div>
+          <p class="notice" id="picker-tip"><strong>PC / Linux:</strong> If the chooser shows only <code>ttyS0</code>, <code>ttyS1</code> etc., do not select them. They are local system serial ports, not the printer. Pair RPP02N in Linux Bluetooth settings and try again.</p>
+        </section>
+
+        <section class="card" aria-labelledby="print-heading">
+          <div class="section-heading"><h2 id="print-heading">2. Test printing</h2><span class="tiny-label">ESC/POS</span></div>
+          <div class="receipt-preview" aria-label="Sample test receipt preview">
+            <div class="receipt-top"></div>
+            <div class="receipt-inner">
+              <div class="receipt-title">RPP02N BROWSER TEST</div>
+              <div class="receipt-rule">--------------------------------</div>
+              <div>HELLO PRINTER!</div>
+              <div>Printed from Chrome</div>
+              <div class="receipt-rule">--------------------------------</div>
+              <div>PC or Android Chrome / Web Serial</div>
+            </div>
+          </div>
+          <button id="test-btn" class="btn primary" type="button" disabled>Print sample receipt</button>
+          <p class="subtle small">This sends ESC/POS bytes directly to the selected printer. A “sent” message means the browser completed the write; please check the actual paper to confirm printing.</p>
+        </section>
+
+        <section class="card" aria-labelledby="custom-heading">
+          <div class="section-heading"><h2 id="custom-heading">3. Print your text</h2><span class="tiny-label">ASCII TEST</span></div>
+          <label for="custom-text" class="field-label">Custom receipt text</label>
+          <textarea id="custom-text" rows="5" maxlength="1500" spellcheck="false" placeholder="Enter text (English/ASCII only)...">Hello Printer!
+RPP02N is ready.</textarea>
+          <p class="subtle small">For this first hardware test, use English letters, digits and punctuation. Bengali/Unicode bitmap printing comes later.</p>
+          <button id="custom-btn" class="btn outline" type="button" disabled>Print custom text</button>
+        </section>
+
+        <section class="card" aria-labelledby="help-heading">
+          <div class="section-heading"><h2 id="help-heading">Troubleshooting PC &amp; Android</h2><span class="tiny-label">CHECKLIST</span></div>
+          <details>
+            <summary>Android Chrome (138+)</summary>
+            <ol>
+              <li>Pair RPP02N from Android Settings → Bluetooth.</li>
+              <li>Close Thermer, turn printer ON and keep it nearby.</li>
+              <li>Open the HTTPS GitHub Pages URL in actual Chrome, not Facebook/WhatsApp in-app browser.</li>
+              <li>Tap Connect and select the RPP02N / Bluetooth Serial Port entry.</li>
+            </ol>
+          </details>
+          <details>
+            <summary>Windows / macOS Chrome</summary>
+            <ol>
+              <li>Pair RPP02N in the computer's Bluetooth settings.</li>
+              <li>Open this GitHub Pages URL in updated desktop Chrome.</li>
+              <li>Choose the printer's Bluetooth Serial Port (not a random COM port).</li>
+            </ol>
+          </details>
+          <details>
+            <summary>Linux Chrome: only ttyS ports show</summary>
+            <ol>
+              <li><code>ttyS0</code> etc. are not evidence that the printer is detected.</li>
+              <li>In a terminal, run <code>bluetoothctl</code> → <code>scan on</code>, then pair and trust the RPP02N address.</li>
+              <li>Check the printer's Serial Port service with <code>sdptool browse &lt;printer-mac&gt;</code> if available.</li>
+              <li>Refresh Chrome and try again. OS-level SPP support may need further configuration.</li>
+            </ol>
+          </details>
+          <p class="subtle small">Chrome can use paired Bluetooth Classic serial ports; it cannot guarantee that every printer exposes a compatible SPP service. Unsupported iPhone Safari cannot use this approach.</p>
+        </section>
+
+        <section class="card" aria-labelledby="log-heading">
+          <div class="section-heading"><h2 id="log-heading">Connection &amp; print log</h2><div class="mini-buttons"><button id="copy-log" type="button">Copy</button><button id="clear-log" type="button">Clear</button></div></div>
+          <pre id="log" class="log" role="log" aria-live="polite"></pre>
+          <p class="subtle small">All Bluetooth communication happens on your device. This tester has no server and does not upload receipts or device information.</p>
+        </section>
+      </main>
+      <footer>RPP02N Browser Printer Lab · GitHub Pages test · Bluetooth Classic SPP · HTTPS</footer>
+    </div>
+  </body>
+</html>
