@@ -16,11 +16,11 @@
           <div class="logo" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6zM18 12h.01"/></svg>
           </div>
-          <span class="version">GitHub Pages v1.1</span>
+          <span class="version">GitHub Pages v1.3</span>
         </div>
         <div class="eyebrow">BLUETOOTH RECEIPT PRINTING</div>
         <h1>RPP02N Printer Lab</h1>
-        <p>Connect and print directly from PC or Android Chrome over Bluetooth — no Thermer app or backend required.</p>
+        <p>Test Bluetooth Classic <strong>SPP</strong> printing from PC or Android Chrome. Connect via standard SPP first — do not search for RPP02N in the BLE picker. Optional BLE/custom RFCOMM checks are diagnostic only.</p>
       </header>
 
       <main>
@@ -42,21 +42,46 @@
             <h2 id="connect-heading">1. Connect printer</h2>
             <span id="connection-badge" class="status-pill idle"><span class="status-dot"></span> Not connected</span>
           </div>
-          <p class="subtle">Turn on your printer, pair it from the <strong>same PC or Android phone’s Bluetooth settings</strong>, and open this page in <strong>Google Chrome</strong>. Close Thermer or any app already using the printer.</p>
+          <p class="subtle">Turn on your printer, pair it from the <strong>same PC or Android phone’s Bluetooth settings</strong> (PIN <code>0000</code> / <code>000000</code>), and open this page in <strong>Google Chrome</strong>. Force-stop Thermer or any app already using the printer.</p>
           <div class="buttons">
-            <button id="connect-btn" class="btn primary" type="button">
+            <button id="connect-spp-btn" class="btn primary" type="button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10-5 4V3l5 4L7 17"/></svg>
-              Choose &amp; connect printer
+              Connect RPP02N (Bluetooth SPP)
             </button>
+            <button id="connect-any-btn" class="btn outline" type="button">Any serial port</button>
             <button id="reconnect-btn" class="btn outline" type="button">Reconnect permitted printer</button>
             <button id="disconnect-btn" class="btn muted" type="button" disabled>Disconnect</button>
           </div>
+          <p class="subtle small"><strong>Bluetooth SPP</strong> filters to the standard Serial Port Profile (what RPP02N uses). <strong>Any serial port</strong> is a fallback for USB or already-mapped ports — on Linux it may also list <code>ttyS*</code> system ports (do not pick those).</p>
           <div class="device-info" id="device-info" hidden></div>
-          <p class="notice" id="picker-tip"><strong>PC / Linux:</strong> If the chooser shows only <code>ttyS0</code>, <code>ttyS1</code> etc., do not select them. They are local system serial ports, not the printer. Pair RPP02N in Linux Bluetooth settings and try again.</p>
+          <p class="notice" id="android-picker-tip" hidden><strong>Android:</strong> Need Chrome <strong>138+</strong>. If SPP still says "No compatible devices found" after pairing and closing Thermer, run the diagnosis section. BLE visibility does <em>not</em> replace SPP. No webpage can bypass browser Bluetooth limits.</p>
+          <p class="notice" id="picker-tip" hidden><strong>PC / Linux:</strong> Prefer <strong>Connect RPP02N (Bluetooth SPP)</strong>. If you use Any serial port and only see <code>ttyS0</code>, <code>ttyS1</code> etc., those are local system ports — not the printer. Pair/trust RPP02N in Linux Bluetooth settings and try SPP again.</p>
+        </section>
+
+        <section class="card" aria-labelledby="diagnostic-heading">
+          <div class="section-heading">
+            <h2 id="diagnostic-heading">2. Diagnose missing Bluetooth devices</h2><span class="tiny-label">SAFE READ-ONLY TESTS</span>
+          </div>
+          <p class="subtle">These tests do not print, send ESC/POS commands, or upload device data. Bluetooth permissions remain controlled by your browser.</p>
+          <button id="capabilities-btn" class="btn outline" type="button">Check browser capabilities</button>
+          <p class="subtle small"><strong>Test A — BLE discovery (diagnostic only):</strong> Do <em>not</em> use this to find RPP02N for printing. RPP02N prints over Classic SPP. BLE may appear for some dual-mode units; it does not prove BLE printing.</p>
+          <button id="ble-test-btn" class="btn outline" type="button">Check BLE device visibility</button>
+          <p id="ble-result" class="notice" role="status" aria-live="polite">Not tested yet.</p>
+          <details>
+            <summary>Advanced: custom Bluetooth Classic RFCOMM service UUID</summary>
+            <p class="subtle small">RPP02N normally uses standard SPP (<code>00001101-0000-1000-8000-00805f9b34fb</code>) — use the primary SPP button above. Enter a custom UUID here <strong>only</strong> if you obtained it from the manufacturer or an SDP record. Guessing a UUID does not help.</p>
+            <label class="field-label" for="custom-uuid">RFCOMM service UUID (128-bit)</label>
+            <input id="custom-uuid" class="uuid-input" type="text" inputmode="text" placeholder="00001101-0000-1000-8000-00805f9b34fb" autocomplete="off" spellcheck="false" />
+            <div class="buttons">
+              <button id="use-spp-uuid-btn" class="btn outline" type="button">Fill standard SPP UUID</button>
+              <button id="custom-rfcomm-btn" class="btn outline" type="button">Connect via known custom RFCOMM UUID</button>
+            </div>
+          </details>
+          <p class="notice" id="diagnosis-next" role="status" aria-live="polite">Use Connect RPP02N (Bluetooth SPP) first — RPP02N is Classic SPP, not BLE. If the SPP chooser is empty, run capabilities + BLE diagnostic below for a clear verdict.</p>
         </section>
 
         <section class="card" aria-labelledby="print-heading">
-          <div class="section-heading"><h2 id="print-heading">2. Test printing</h2><span class="tiny-label">ESC/POS</span></div>
+          <div class="section-heading"><h2 id="print-heading">3. Test printing</h2><span class="tiny-label">ESC/POS</span></div>
           <div class="receipt-preview" aria-label="Sample test receipt preview">
             <div class="receipt-top"></div>
             <div class="receipt-inner">
@@ -73,7 +98,7 @@
         </section>
 
         <section class="card" aria-labelledby="custom-heading">
-          <div class="section-heading"><h2 id="custom-heading">3. Print your text</h2><span class="tiny-label">ASCII TEST</span></div>
+          <div class="section-heading"><h2 id="custom-heading">4. Print your text</h2><span class="tiny-label">ASCII TEST</span></div>
           <label for="custom-text" class="field-label">Custom receipt text</label>
           <textarea id="custom-text" rows="5" maxlength="1500" spellcheck="false" placeholder="Enter text (English/ASCII only)...">Hello Printer!
 RPP02N is ready.</textarea>
@@ -83,13 +108,24 @@ RPP02N is ready.</textarea>
 
         <section class="card" aria-labelledby="help-heading">
           <div class="section-heading"><h2 id="help-heading">Troubleshooting PC &amp; Android</h2><span class="tiny-label">CHECKLIST</span></div>
+          <details open>
+            <summary>Verify on PC &amp; Android (manual checklist)</summary>
+            <ol>
+              <li>Printer ON, paper loaded, stay nearby.</li>
+              <li>Pair in <strong>OS Bluetooth settings</strong> (PIN <code>0000</code> or <code>000000</code>). Force-stop Thermer.</li>
+              <li>Open this HTTPS page in real Chrome (Android needs <strong>138+</strong>; desktop Chrome current).</li>
+              <li>Tap <strong>Connect RPP02N (Bluetooth SPP)</strong> — not the BLE diagnostic.</li>
+              <li>Select the printer / Serial Port Profile entry → <strong>Print sample receipt</strong> → check paper.</li>
+              <li>If empty: <strong>Check browser capabilities</strong>, copy the log, then BLE diagnostic only for a verdict.</li>
+            </ol>
+          </details>
           <details>
             <summary>Android Chrome (138+)</summary>
             <ol>
               <li>Pair RPP02N from Android Settings → Bluetooth.</li>
-              <li>Close Thermer, turn printer ON and keep it nearby.</li>
+              <li>Force-stop Thermer, turn printer ON and keep it nearby.</li>
               <li>Open the HTTPS GitHub Pages URL in actual Chrome, not Facebook/WhatsApp in-app browser.</li>
-              <li>Tap Connect and select the RPP02N / Bluetooth Serial Port entry.</li>
+              <li>Tap <strong>Connect RPP02N (Bluetooth SPP)</strong> and select the printer entry.</li>
             </ol>
           </details>
           <details>
@@ -97,19 +133,19 @@ RPP02N is ready.</textarea>
             <ol>
               <li>Pair RPP02N in the computer's Bluetooth settings.</li>
               <li>Open this GitHub Pages URL in updated desktop Chrome.</li>
-              <li>Choose the printer's Bluetooth Serial Port (not a random COM port).</li>
+              <li>Use <strong>Connect RPP02N (Bluetooth SPP)</strong>, not a random COM port from Any serial port.</li>
             </ol>
           </details>
           <details>
             <summary>Linux Chrome: only ttyS ports show</summary>
             <ol>
-              <li><code>ttyS0</code> etc. are not evidence that the printer is detected.</li>
+              <li>Use the SPP button first. <code>ttyS0</code> etc. (Any serial port) are not the printer.</li>
               <li>In a terminal, run <code>bluetoothctl</code> → <code>scan on</code>, then pair and trust the RPP02N address.</li>
               <li>Check the printer's Serial Port service with <code>sdptool browse &lt;printer-mac&gt;</code> if available.</li>
-              <li>Refresh Chrome and try again. OS-level SPP support may need further configuration.</li>
+              <li>Refresh Chrome and try <strong>Connect RPP02N (Bluetooth SPP)</strong> again.</li>
             </ol>
           </details>
-          <p class="subtle small">Chrome can use paired Bluetooth Classic serial ports; it cannot guarantee that every printer exposes a compatible SPP service. Unsupported iPhone Safari cannot use this approach.</p>
+          <p class="subtle small">Chrome can use paired Bluetooth Classic SPP; it cannot guarantee every printer exposes a compatible service. Do not look for RPP02N in the BLE picker for printing. iPhone Safari is unsupported.</p>
         </section>
 
         <section class="card" aria-labelledby="log-heading">
@@ -118,7 +154,7 @@ RPP02N is ready.</textarea>
           <p class="subtle small">All Bluetooth communication happens on your device. This tester has no server and does not upload receipts or device information.</p>
         </section>
       </main>
-      <footer>RPP02N Browser Printer Lab · GitHub Pages test · Bluetooth Classic SPP · HTTPS</footer>
+      <footer>RPP02N Browser Printer Lab v1.3 · GitHub Pages · Classic SPP first · BLE diagnosis only · HTTPS</footer>
     </div>
   </body>
 </html>
