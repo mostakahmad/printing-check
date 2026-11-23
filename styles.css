@@ -66,3 +66,13 @@ code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; background:#e
 /* v1.2 advanced diagnostics */
 .uuid-input { display:block; width:100%; min-width:0; margin:10px 0; box-sizing:border-box; padding:12px; font-size:14px; border:1px solid #cbd5e1; border-radius:9px; background:#fff; color:#0f172a; }
 #diagnostic-heading { overflow-wrap:anywhere; }
+
+/* v1.4 image print */
+.file-input { display:block; width:100%; margin:0 0 12px; padding:10px 12px; border:1px solid #bdc9d8; border-radius:10px; background:#fff; color:var(--ink); font:13px/1.4 system-ui,sans-serif; }
+.image-options { display:grid; gap:10px; margin-bottom:12px; }
+.option-row { display:grid; gap:6px; font-size:12px; font-weight:700; color:#425774; }
+.option-row input[type="range"] { width:100%; accent-color:var(--blue); }
+.option-row.check { display:flex; align-items:center; gap:8px; font-weight:600; }
+.option-row.check input { width:16px; height:16px; accent-color:var(--blue); }
+.image-preview-wrap { margin:4px 0 14px; }
+.image-preview { display:block; width:100%; max-width:384px; margin:0 auto; height:auto; background:#fff; border:1px dashed #cbd5e1; image-rendering:pixelated; }
