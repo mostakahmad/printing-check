@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#0f172a" />
     <meta name="description" content="A local-only browser test for an RPP02N Bluetooth Classic ESC/POS receipt printer using the Web Serial API." />
     <title>RPP02N | PC & Mobile Bluetooth Printer Lab</title>
-    <link rel="stylesheet" href="./styles.css" />
-    <script defer src="./app.js"></script>
+    <link rel="stylesheet" href="./styles.css?v=1.4.2" />
+    <script defer src="./app.js?v=1.4.2"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -16,7 +16,7 @@
           <div class="logo" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6zM18 12h.01"/></svg>
           </div>
-          <span class="version">GitHub Pages v1.4</span>
+          <span class="version">GitHub Pages v1.4.2</span>
         </div>
         <div class="eyebrow">BLUETOOTH RECEIPT PRINTING</div>
         <h1>RPP02N Printer Lab</h1>
@@ -109,13 +109,19 @@ RPP02N is ready.</textarea>
         <section class="card" aria-labelledby="image-heading">
           <div class="section-heading"><h2 id="image-heading">5. Print any image</h2><span class="tiny-label">ESC/POS RASTER</span></div>
           <p class="subtle">Pick a JPG, PNG, WebP, or GIF. The page converts it locally to a 1-bit thermal bitmap (max width 384 dots for 58&nbsp;mm paper) and sends ESC/POS raster graphics — nothing is uploaded.</p>
-          <p class="field-label" id="image-pick-label">Choose image</p>
-          <label id="image-pick-btn" class="btn outline file-pick">
+          <p class="field-label" id="image-pick-label">Choose image (phone: use the system control below)</p>
+          <!-- Hidden input used by the desktop/button path. Must NOT be display:none or opacity:0 (Android Chrome blocks those). -->
+          <input id="image-input" class="file-input-sr" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" aria-labelledby="image-pick-label" tabindex="-1" />
+          <button id="image-pick-btn" class="btn outline" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
             Choose image from gallery
-            <input id="image-input" class="file-input-overlay" type="file" accept="image/*" aria-labelledby="image-pick-label" />
-          </label>
-          <p class="subtle small" id="image-file-name">No image selected yet. Tap the button above — gallery / Files should open on phone.</p>
+          </button>
+          <!-- Visible native control — most reliable on Android Chrome. -->
+          <div class="file-native-wrap">
+            <label class="field-label" for="image-input-mobile">Or pick a photo here (Android)</label>
+            <input id="image-input-mobile" class="file-input-native" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.bmp" />
+          </div>
+          <p class="subtle small" id="image-file-name">No image selected yet.</p>
           <div class="image-options">
             <label class="option-row" for="image-threshold">
               <span>Darkness threshold <span id="threshold-value">128</span></span>
