@@ -109,8 +109,13 @@ RPP02N is ready.</textarea>
         <section class="card" aria-labelledby="image-heading">
           <div class="section-heading"><h2 id="image-heading">5. Print any image</h2><span class="tiny-label">ESC/POS RASTER</span></div>
           <p class="subtle">Pick a JPG, PNG, WebP, or GIF. The page converts it locally to a 1-bit thermal bitmap (max width 384 dots for 58&nbsp;mm paper) and sends ESC/POS raster graphics — nothing is uploaded.</p>
-          <label for="image-input" class="field-label">Choose image</label>
-          <input id="image-input" class="file-input" type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp" />
+          <p class="field-label" id="image-pick-label">Choose image</p>
+          <label id="image-pick-btn" class="btn outline file-pick">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            Choose image from gallery
+            <input id="image-input" class="file-input-overlay" type="file" accept="image/*" aria-labelledby="image-pick-label" />
+          </label>
+          <p class="subtle small" id="image-file-name">No image selected yet. Tap the button above — gallery / Files should open on phone.</p>
           <div class="image-options">
             <label class="option-row" for="image-threshold">
               <span>Darkness threshold <span id="threshold-value">128</span></span>
