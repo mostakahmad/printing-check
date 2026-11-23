@@ -16,7 +16,7 @@
           <div class="logo" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6zM18 12h.01"/></svg>
           </div>
-          <span class="version">GitHub Pages v1.3</span>
+          <span class="version">GitHub Pages v1.4</span>
         </div>
         <div class="eyebrow">BLUETOOTH RECEIPT PRINTING</div>
         <h1>RPP02N Printer Lab</h1>
@@ -106,6 +106,33 @@ RPP02N is ready.</textarea>
           <button id="custom-btn" class="btn outline" type="button" disabled>Print custom text</button>
         </section>
 
+        <section class="card" aria-labelledby="image-heading">
+          <div class="section-heading"><h2 id="image-heading">5. Print any image</h2><span class="tiny-label">ESC/POS RASTER</span></div>
+          <p class="subtle">Pick a JPG, PNG, WebP, or GIF. The page converts it locally to a 1-bit thermal bitmap (max width 384 dots for 58&nbsp;mm paper) and sends ESC/POS raster graphics — nothing is uploaded.</p>
+          <label for="image-input" class="field-label">Choose image</label>
+          <input id="image-input" class="file-input" type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp" />
+          <div class="image-options">
+            <label class="option-row" for="image-threshold">
+              <span>Darkness threshold <span id="threshold-value">128</span></span>
+              <input id="image-threshold" type="range" min="40" max="220" value="128" />
+            </label>
+            <label class="option-row check">
+              <input id="image-dither" type="checkbox" checked />
+              <span>Floyd–Steinberg dither (smoother photos)</span>
+            </label>
+          </div>
+          <div id="image-preview-wrap" class="image-preview-wrap" hidden>
+            <p class="field-label">Thermal preview (what the printer will receive)</p>
+            <canvas id="image-preview" class="image-preview" width="384" height="1" aria-label="Monochrome print preview"></canvas>
+            <p class="subtle small" id="image-meta"></p>
+          </div>
+          <div class="buttons">
+            <button id="image-btn" class="btn primary" type="button" disabled>Print image</button>
+            <button id="image-clear-btn" class="btn muted" type="button" disabled>Clear image</button>
+          </div>
+          <p class="subtle small">High-contrast images and logos print best. Very large photos are scaled down automatically. Confirm output on paper after “sent”.</p>
+        </section>
+
         <section class="card" aria-labelledby="help-heading">
           <div class="section-heading"><h2 id="help-heading">Troubleshooting PC &amp; Android</h2><span class="tiny-label">CHECKLIST</span></div>
           <details open>
@@ -154,7 +181,7 @@ RPP02N is ready.</textarea>
           <p class="subtle small">All Bluetooth communication happens on your device. This tester has no server and does not upload receipts or device information.</p>
         </section>
       </main>
-      <footer>RPP02N Browser Printer Lab v1.3 · GitHub Pages · Classic SPP first · BLE diagnosis only · HTTPS</footer>
+      <footer>RPP02N Browser Printer Lab v1.4 · GitHub Pages · Classic SPP first · Image raster print · HTTPS</footer>
     </div>
   </body>
 </html>
