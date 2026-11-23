@@ -188,6 +188,8 @@
     $('image-btn').disabled = !connected || busy || !state.imageReady;
     $('image-clear-btn').disabled = !state.imageReady || busy;
     $('image-input').disabled = busy;
+    $('image-pick-btn').classList.toggle('is-disabled', busy);
+    $('image-pick-btn').setAttribute('aria-disabled', busy ? 'true' : 'false');
     $('image-threshold').disabled = !state.imageReady || busy;
     $('image-dither').disabled = !state.imageReady || busy;
     const badge = $('connection-badge');
@@ -463,6 +465,11 @@
     return 0.299 * r + 0.587 * g + 0.114 * b;
   }
 
+  function setImageFileName(text) {
+    const node = $('image-file-name');
+    if (node) node.textContent = text;
+  }
+
   function clearImage() {
     state.imageReady = false;
     state.imageName = '';
@@ -474,13 +481,44 @@
     $('image-preview-wrap').hidden = true;
     $('image-meta').textContent = '';
     $('image-input').value = '';
+    setImageFileName('No image selected yet. Tap the button above — gallery / Files should open on phone.');
     render();
+  }
+
+  function looksLikeImage(file) {
+    if (file.type && file.type.startsWith('image/')) return true;
+    // Android gallery sometimes leaves type empty; fall back to extension.
+    return /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(file.name || '');
+  }
+
+  function decodeImageFile(file) {
+    if (typeof createImageBitmap === 'function') {
+      return createImageBitmap(file).catch(() => decodeImageViaElement(file));
+    }
+    return decodeImageViaElement(file);
+  }
+
+  function decodeImageViaElement(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Could not decode this image on this phone browser.'));
+      };
+      img.src = url;
+    });
   }
 
   async function loadImageFile(file) {
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
+    if (!looksLikeImage(file)) {
       log('IMAGE ERROR: Please choose an image file (JPG, PNG, WebP, GIF, BMP).');
+      setImageFileName('Not an image: ' + (file.name || 'unknown'));
       return;
     }
     if (file.size > MAX_IMAGE_BYTES) {
@@ -491,10 +529,12 @@
     render();
     try {
       log('IMAGE: Loading ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)…');
-      const bitmap = await createImageBitmap(file);
-      state.imageName = file.name;
+      setImageFileName('Loading ' + file.name + '…');
+      const bitmap = await decodeImageFile(file);
+      state.imageName = file.name || 'image';
       await prepareImageFromBitmap(bitmap);
-      bitmap.close();
+      if (typeof bitmap.close === 'function') bitmap.close();
+      setImageFileName('Selected: ' + state.imageName);
       log('IMAGE READY: ' + state.imageName + ' → ' + $('image-preview').width + '×' + $('image-preview').height + ' dots.');
     } catch (error) {
       clearImage();
@@ -591,9 +631,9 @@
     state.busy = true;
     render();
     try {
-      const bitmap = await createImageBitmap(file);
+      const bitmap = await decodeImageFile(file);
       await prepareImageFromBitmap(bitmap);
-      bitmap.close();
+      if (typeof bitmap.close === 'function') bitmap.close();
     } catch (error) {
       log('IMAGE ERROR: ' + (error && error.message ? error.message : String(error)));
     } finally {
@@ -691,7 +731,20 @@
   $('image-input').addEventListener('change', (event) => {
     const file = event.target.files && event.target.files[0];
     if (file) loadImageFile(file);
-    else clearImage();
+    else {
+      log('IMAGE: File picker closed without a selection.');
+      setImageFileName('No image selected yet. Tap the button above — gallery / Files should open on phone.');
+    }
+  });
+  // Fallback if a tap hits the label chrome instead of the overlay input.
+  $('image-pick-btn').addEventListener('click', (event) => {
+    if (state.busy || state.printing) {
+      event.preventDefault();
+      return;
+    }
+    if (event.target === $('image-input')) return;
+    event.preventDefault();
+    try { $('image-input').click(); } catch (_) { /* ignore */ }
   });
   $('image-threshold').addEventListener('input', () => {
     $('threshold-value').textContent = String($('image-threshold').value);
