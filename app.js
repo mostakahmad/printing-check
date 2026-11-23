@@ -188,8 +188,8 @@
     $('image-btn').disabled = !connected || busy || !state.imageReady;
     $('image-clear-btn').disabled = !state.imageReady || busy;
     $('image-input').disabled = busy;
-    $('image-pick-btn').classList.toggle('is-disabled', busy);
-    $('image-pick-btn').setAttribute('aria-disabled', busy ? 'true' : 'false');
+    $('image-input-mobile').disabled = busy;
+    $('image-pick-btn').disabled = busy;
     $('image-threshold').disabled = !state.imageReady || busy;
     $('image-dither').disabled = !state.imageReady || busy;
     const badge = $('connection-badge');
@@ -481,8 +481,43 @@
     $('image-preview-wrap').hidden = true;
     $('image-meta').textContent = '';
     $('image-input').value = '';
-    setImageFileName('No image selected yet. Tap the button above — gallery / Files should open on phone.');
+    $('image-input-mobile').value = '';
+    setImageFileName('No image selected yet.');
     render();
+  }
+
+  function openImagePicker() {
+    if (state.busy || state.printing) return;
+    const input = $('image-input');
+    // Reset so selecting the same photo again still fires change on Android.
+    input.value = '';
+    log('IMAGE: Opening system photo picker…');
+    setImageFileName('Opening photo picker…');
+    try {
+      input.click();
+    } catch (error) {
+      log('IMAGE ERROR: Could not open picker. Use the Android file control below the button.');
+      setImageFileName('Use the “Or pick a photo here (Android)” control.');
+    }
+  }
+
+  function onImagePicked(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) {
+      log('IMAGE: Picker closed without a selection.');
+      setImageFileName('No image selected yet.');
+      return;
+    }
+    // Keep both inputs in sync for later threshold refresh.
+    try {
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      $('image-input').files = transfer.files;
+      $('image-input-mobile').files = transfer.files;
+    } catch (_) {
+      // DataTransfer assignment is unsupported in some WebViews; ignore.
+    }
+    loadImageFile(file);
   }
 
   function looksLikeImage(file) {
@@ -625,9 +660,10 @@
   }
 
   async function refreshImageFromFile() {
-    const input = $('image-input');
-    if (!input.files || !input.files[0]) return;
-    const file = input.files[0];
+    const file =
+      ($('image-input').files && $('image-input').files[0]) ||
+      ($('image-input-mobile').files && $('image-input-mobile').files[0]);
+    if (!file) return;
     state.busy = true;
     render();
     try {
@@ -728,24 +764,9 @@
   $('disconnect-btn').addEventListener('click', disconnect);
   $('test-btn').addEventListener('click', () => print(sampleReceipt(), 'sample receipt'));
   $('custom-btn').addEventListener('click', () => print($('custom-text').value, 'custom receipt'));
-  $('image-input').addEventListener('change', (event) => {
-    const file = event.target.files && event.target.files[0];
-    if (file) loadImageFile(file);
-    else {
-      log('IMAGE: File picker closed without a selection.');
-      setImageFileName('No image selected yet. Tap the button above — gallery / Files should open on phone.');
-    }
-  });
-  // Fallback if a tap hits the label chrome instead of the overlay input.
-  $('image-pick-btn').addEventListener('click', (event) => {
-    if (state.busy || state.printing) {
-      event.preventDefault();
-      return;
-    }
-    if (event.target === $('image-input')) return;
-    event.preventDefault();
-    try { $('image-input').click(); } catch (_) { /* ignore */ }
-  });
+  $('image-input').addEventListener('change', onImagePicked);
+  $('image-input-mobile').addEventListener('change', onImagePicked);
+  $('image-pick-btn').addEventListener('click', openImagePicker);
   $('image-threshold').addEventListener('input', () => {
     $('threshold-value').textContent = String($('image-threshold').value);
   });
