@@ -17,10 +17,17 @@
     sppFound: false,
     bleTried: false,
     bleFound: false,
+    imageReady: false,
+    imageName: '',
   };
   const encoder = new TextEncoder();
   const ESC = 0x1b;
+  const GS = 0x1d;
   const LF = 0x0a;
+  // Common 58 mm thermal width (RPP02N-class). Wider printers still accept this.
+  const PRINT_WIDTH_DOTS = 384;
+  const MAX_IMAGE_HEIGHT = 2400;
+  const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
   function log(message) {
     const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
@@ -178,6 +185,11 @@
     $('disconnect-btn').disabled = !connected || busy;
     $('test-btn').disabled = !connected || busy;
     $('custom-btn').disabled = !connected || busy;
+    $('image-btn').disabled = !connected || busy || !state.imageReady;
+    $('image-clear-btn').disabled = !state.imageReady || busy;
+    $('image-input').disabled = busy;
+    $('image-threshold').disabled = !state.imageReady || busy;
+    $('image-dither').disabled = !state.imageReady || busy;
     const badge = $('connection-badge');
     if (state.busy || state.printing) {
       badge.className = 'status-pill busy';
@@ -431,23 +443,7 @@
     let bytes;
     try { bytes = packet(text); }
     catch (error) { log('INPUT ERROR: ' + error.message); return; }
-
-    state.printing = true;
-    render();
-    let writer;
-    try {
-      if (!state.port.writable) throw new Error('Port is no longer writable. Disconnect and reconnect.');
-      writer = state.port.writable.getWriter();
-      log('Sending ' + label + ' (' + bytes.length + ' bytes)…');
-      await writer.write(bytes);
-      log('WRITE COMPLETED: ' + bytes.length + ' bytes sent. Please verify the paper printed.');
-    } catch (error) {
-      log('PRINT FAILED: ' + diagnostic(error));
-    } finally {
-      if (writer) writer.releaseLock();
-      state.printing = false;
-      render();
-    }
+    await printBytes(bytes, label);
   }
 
   // A short line length fits the common 58 mm / 384-dot receipt layout.
@@ -463,6 +459,225 @@
     ].join('\n');
   }
 
+  function luminance(r, g, b) {
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+  }
+
+  function clearImage() {
+    state.imageReady = false;
+    state.imageName = '';
+    const canvas = $('image-preview');
+    const ctx = canvas.getContext('2d');
+    canvas.width = PRINT_WIDTH_DOTS;
+    canvas.height = 1;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    $('image-preview-wrap').hidden = true;
+    $('image-meta').textContent = '';
+    $('image-input').value = '';
+    render();
+  }
+
+  async function loadImageFile(file) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      log('IMAGE ERROR: Please choose an image file (JPG, PNG, WebP, GIF, BMP).');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      log('IMAGE ERROR: File too large (max 8 MB).');
+      return;
+    }
+    state.busy = true;
+    render();
+    try {
+      log('IMAGE: Loading ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)…');
+      const bitmap = await createImageBitmap(file);
+      state.imageName = file.name;
+      await prepareImageFromBitmap(bitmap);
+      bitmap.close();
+      log('IMAGE READY: ' + state.imageName + ' → ' + $('image-preview').width + '×' + $('image-preview').height + ' dots.');
+    } catch (error) {
+      clearImage();
+      log('IMAGE ERROR: ' + (error && error.message ? error.message : String(error)));
+    } finally {
+      state.busy = false;
+      render();
+    }
+  }
+
+  async function prepareImageFromBitmap(bitmap) {
+    const srcW = bitmap.width;
+    const srcH = bitmap.height;
+    if (!srcW || !srcH) throw new Error('Could not read image dimensions.');
+
+    let width = Math.min(PRINT_WIDTH_DOTS, srcW);
+    let height = Math.round(srcH * (width / srcW));
+    if (height > MAX_IMAGE_HEIGHT) {
+      height = MAX_IMAGE_HEIGHT;
+      width = Math.max(8, Math.round(srcW * (height / srcH)));
+      width = Math.min(PRINT_WIDTH_DOTS, width);
+    }
+    // ESC/POS raster width must be a multiple of 8 dots.
+    width = Math.max(8, Math.floor(width / 8) * 8);
+
+    const work = document.createElement('canvas');
+    work.width = width;
+    work.height = height;
+    const wctx = work.getContext('2d', { willReadFrequently: true });
+    wctx.fillStyle = '#ffffff';
+    wctx.fillRect(0, 0, width, height);
+    wctx.drawImage(bitmap, 0, 0, width, height);
+
+    const imageData = wctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    const threshold = Number($('image-threshold').value) || 128;
+    const useDither = $('image-dither').checked;
+    const gray = new Float32Array(width * height);
+
+    for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+      const a = data[i + 3] / 255;
+      const r = data[i] * a + 255 * (1 - a);
+      const g = data[i + 1] * a + 255 * (1 - a);
+      const b = data[i + 2] * a + 255 * (1 - a);
+      gray[p] = luminance(r, g, b);
+    }
+
+    if (useDither) {
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x;
+          const old = gray[idx];
+          const neu = old < threshold ? 0 : 255;
+          const err = old - neu;
+          gray[idx] = neu;
+          if (x + 1 < width) gray[idx + 1] += err * (7 / 16);
+          if (y + 1 < height) {
+            if (x > 0) gray[idx + width - 1] += err * (3 / 16);
+            gray[idx + width] += err * (5 / 16);
+            if (x + 1 < width) gray[idx + width + 1] += err * (1 / 16);
+          }
+        }
+      }
+    }
+
+    for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+      const v = gray[p] < threshold ? 0 : 255;
+      data[i] = data[i + 1] = data[i + 2] = v;
+      data[i + 3] = 255;
+    }
+    wctx.putImageData(imageData, 0, 0);
+
+    const preview = $('image-preview');
+    preview.width = width;
+    preview.height = height;
+    const pctx = preview.getContext('2d');
+    pctx.fillStyle = '#ffffff';
+    pctx.fillRect(0, 0, width, height);
+    pctx.drawImage(work, 0, 0);
+
+    state.imageReady = true;
+    $('image-preview-wrap').hidden = false;
+    $('threshold-value').textContent = String(threshold);
+    $('image-meta').textContent =
+      state.imageName + ' · ' + width + '×' + height + ' dots · ' +
+      (useDither ? 'dithered' : 'threshold') + ' · ~' +
+      Math.ceil((width / 8) * height / 1024) + ' KB raster';
+  }
+
+  async function refreshImageFromFile() {
+    const input = $('image-input');
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    state.busy = true;
+    render();
+    try {
+      const bitmap = await createImageBitmap(file);
+      await prepareImageFromBitmap(bitmap);
+      bitmap.close();
+    } catch (error) {
+      log('IMAGE ERROR: ' + (error && error.message ? error.message : String(error)));
+    } finally {
+      state.busy = false;
+      render();
+    }
+  }
+
+  /** ESC/POS GS v 0 — raster bit image (m=0 normal density). */
+  function buildRasterFromCanvas(canvas) {
+    const width = canvas.width;
+    const height = canvas.height;
+    if (!width || !height) throw new Error('No image loaded.');
+    if (width % 8 !== 0) throw new Error('Image width must be a multiple of 8.');
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const { data } = ctx.getImageData(0, 0, width, height);
+    const widthBytes = width / 8;
+    const raster = new Uint8Array(widthBytes * height);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        // Black pixel → print bit 1 (thermal burns dark).
+        if (data[i] < 128) {
+          raster[y * widthBytes + (x >> 3)] |= 0x80 >> (x & 7);
+        }
+      }
+    }
+
+    const xL = widthBytes & 0xff;
+    const xH = (widthBytes >> 8) & 0xff;
+    const yL = height & 0xff;
+    const yH = (height >> 8) & 0xff;
+    // ESC @ init + GS v 0 m xL xH yL yH + raster + feed
+    const header = new Uint8Array([
+      ESC, 0x40,
+      GS, 0x76, 0x30, 0x00,
+      xL, xH, yL, yH,
+    ]);
+    const footer = new Uint8Array([LF, LF, LF]);
+    const out = new Uint8Array(header.length + raster.length + footer.length);
+    out.set(header, 0);
+    out.set(raster, header.length);
+    out.set(footer, header.length + raster.length);
+    return out;
+  }
+
+  async function printBytes(bytes, label) {
+    if (!state.port || state.busy || state.printing) return;
+    state.printing = true;
+    render();
+    let writer;
+    try {
+      if (!state.port.writable) throw new Error('Port is no longer writable. Disconnect and reconnect.');
+      writer = state.port.writable.getWriter();
+      log('Sending ' + label + ' (' + bytes.length + ' bytes)…');
+      // Chunk large rasters so Bluetooth RFCOMM buffers do not overflow.
+      const CHUNK = 512;
+      for (let offset = 0; offset < bytes.length; offset += CHUNK) {
+        await writer.write(bytes.subarray(offset, Math.min(offset + CHUNK, bytes.length)));
+      }
+      log('WRITE COMPLETED: ' + bytes.length + ' bytes sent. Please verify the paper printed.');
+    } catch (error) {
+      log('PRINT FAILED: ' + diagnostic(error));
+    } finally {
+      if (writer) writer.releaseLock();
+      state.printing = false;
+      render();
+    }
+  }
+
+  async function printImage() {
+    if (!state.port || !state.imageReady || state.busy || state.printing) return;
+    let bytes;
+    try {
+      bytes = buildRasterFromCanvas($('image-preview'));
+    } catch (error) {
+      log('IMAGE ERROR: ' + error.message);
+      return;
+    }
+    await printBytes(bytes, 'image raster (' + state.imageName + ')');
+  }
+
   $('connect-spp-btn').addEventListener('click', connectSpp);
   $('connect-any-btn').addEventListener('click', connectAnySerial);
   $('capabilities-btn').addEventListener('click', checkCapabilities);
@@ -473,6 +688,18 @@
   $('disconnect-btn').addEventListener('click', disconnect);
   $('test-btn').addEventListener('click', () => print(sampleReceipt(), 'sample receipt'));
   $('custom-btn').addEventListener('click', () => print($('custom-text').value, 'custom receipt'));
+  $('image-input').addEventListener('change', (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (file) loadImageFile(file);
+    else clearImage();
+  });
+  $('image-threshold').addEventListener('input', () => {
+    $('threshold-value').textContent = String($('image-threshold').value);
+  });
+  $('image-threshold').addEventListener('change', refreshImageFromFile);
+  $('image-dither').addEventListener('change', refreshImageFromFile);
+  $('image-btn').addEventListener('click', printImage);
+  $('image-clear-btn').addEventListener('click', clearImage);
   $('clear-log').addEventListener('click', () => { state.logs.length = 0; $('log').textContent = ''; });
   $('copy-log').addEventListener('click', async () => {
     try {
